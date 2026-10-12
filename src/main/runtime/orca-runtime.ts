@@ -17,6 +17,7 @@ import { RuntimeWorkspaceLayouts } from './runtime-workspace-layouts'
 import { holderStoreOf } from './runtime-workspace-layout-writer'
 import { reloadHolderOnExternalWrites } from './holder-external-write-reload'
 import { PaneTitleFacts } from './pane-title-facts'
+import { layoutCommandsFor } from './runtime-layout-command-host'
 import { isFrozenOrcadSourceSessionPartition } from '../ssh/orcad-retained-source'
 import type { RemoteLayoutSnapshot } from '../../shared/remote-layout-snapshot'
 import { registerDetectedWorktreeScanInvalidation } from '../ipc/worktrees/listing/register-detected-worktree-scan-invalidation'
@@ -203,6 +204,14 @@ class OrcaRuntimeService extends OrcaRuntimeWithMigrationCatalog {
 
   protected readonly paneTitleFacts = new PaneTitleFacts(this.layoutHolder)
 
+  /** The views' commands and per-view store (`layout.*`, `view.*`). */
+  readonly layoutCommands = layoutCommandsFor({
+    holder: this.layoutHolder,
+    store: () => this.store,
+    orchestration: () => this.getExistingOrchestrationDb(),
+    createTerminal: (selector, opts) => this.createTerminal(selector, opts)
+  })
+
   /** No partition owns a folder whose child repos sit on different hosts, so it is not published. */
   private layoutHomeHostId(key: string): ExecutionHostId | null {
     try {
@@ -267,7 +276,7 @@ class OrcaRuntimeService extends OrcaRuntimeWithMigrationCatalog {
     )
   }
 
-  /** The layout stream (`layout.subscribe`, not advertised yet), published by the holder. */
+  /** The layout stream (`layout.subscribe`), published by the holder. */
   subscribeWorkspaceLayouts(
     listener: Parameters<RuntimeWorkspaceLayouts['subscribe']>[0]
   ): ReturnType<RuntimeWorkspaceLayouts['subscribe']> {
